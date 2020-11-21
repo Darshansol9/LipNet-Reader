@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for speaker in $(seq 1 2)
+for speaker in $(seq 1 34)
 	do
 		base="http://spandh.dcs.shef.ac.uk/gridcorpus/s"
 		ext="/video/s"
