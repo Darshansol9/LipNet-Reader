@@ -66,7 +66,7 @@ def get_frames_mouth(detector, predictor, frames):
       cropped_padded = np.zeros((MAX_WIDTH, MAX_HEIGHT,CHANNEL))
       cropped_padded[:shape[0],:shape[1]] = crop_image
 
-      mouth_frames.append(padded_array)
+      mouth_frames.append(cropped_padded)
   
   return mouth_frames
 
