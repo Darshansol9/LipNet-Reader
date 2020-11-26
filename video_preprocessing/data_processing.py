@@ -37,7 +37,7 @@ def data_generator(BASE_PATH,X,y,testing=False):
 
         for files in os.listdir(dir_path):
           
-          count +=1
+          #count +=1
           fname,fext = os.path.splitext(files)
 
           alignments = read_align(os.path.join(os.path.join(BASE_PATH,f's{j}/align'),fname+'.align'))
