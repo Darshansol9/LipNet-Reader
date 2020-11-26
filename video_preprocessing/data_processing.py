@@ -9,7 +9,7 @@ from video_crop import read_video
 
 
 def data_generator(BASE_PATH,X,y,testing=False):
-    
+
   if(not testing):
     max_word_len = -float('inf')
     max_len = -float('inf')
@@ -36,7 +36,10 @@ def data_generator(BASE_PATH,X,y,testing=False):
       
       for start, stop, word in alignments:
           if word == 'sil' or word == 'sp':
-              continue  
+              continue
+            
+          if(testing):
+            
                         
           if start < stop and stop < len(mouth_video):
               X.append(mouth_video[int(math.floor(start)):int(math.floor(stop))])
@@ -48,6 +51,7 @@ def data_generator(BASE_PATH,X,y,testing=False):
             max_word_len = max(max_word_len, len(word))
             max_len = max(max_len, int(math.floor(stop)) - int(math.floor(start)))
 
+    j+=1
 
   if(not testing):
     return X,y,max_word_len,max_len
@@ -108,5 +112,7 @@ def main():
   print(f'Data saved at {path_to_save}')
 
 
+
 if __name__ == '__main__':
+
   main()
