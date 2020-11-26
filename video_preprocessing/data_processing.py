@@ -23,35 +23,44 @@ def data_generator(BASE_PATH,X,y,testing=False):
       if(j == 1 or j == 2 or j = 20 or j == 22):
         j+=1
         continue
-
-    dir_path = os.path.join(BASE_PATH,f's{j}/video')
-
-    for files in os.listdir(dir_path):
       
-      count +=1
-      fname,fext = os.path.splitext(files)
-
-      alignments = read_align(os.path.join(os.path.join(BASE_PATH,f's{j}/align'),fname+'.align'))
-      mouth_video = read_video(os.path.join(dir_path,fname+'.mpg'))
+    else:
       
-      for start, stop, word in alignments:
-          if word == 'sil' or word == 'sp':
-              continue
-            
-          if(testing):
-            
-                        
-          if start < stop and stop < len(mouth_video):
-              X.append(mouth_video[int(math.floor(start)):int(math.floor(stop))])
-              y.append(word)
-          else:
-              continue
+      #testing is True and done only for unseen_speakers
+      if (testing and j not in [1,2,20,22]):
+        j+=1
+        continue
 
-          if(not testing):
-            max_word_len = max(max_word_len, len(word))
-            max_len = max(max_len, int(math.floor(stop)) - int(math.floor(start)))
+      else:
+        #executing this block for all valid train speakers and unseeen_speakers
+        dir_path = os.path.join(BASE_PATH,f's{j}/video')
 
-    j+=1
+        for files in os.listdir(dir_path):
+          
+          count +=1
+          fname,fext = os.path.splitext(files)
+
+          alignments = read_align(os.path.join(os.path.join(BASE_PATH,f's{j}/align'),fname+'.align'))
+          mouth_video = read_video(os.path.join(dir_path,fname+'.mpg'))
+          
+          for start, stop, word in alignments:
+              if word == 'sil' or word == 'sp':
+                  continue
+                
+              if(testing):
+                
+                            
+              if start < stop and stop < len(mouth_video):
+                  X.append(mouth_video[int(math.floor(start)):int(math.floor(stop))])
+                  y.append(word)
+              else:
+                  continue
+
+              if(not testing):
+                max_word_len = max(max_word_len, len(word))
+                max_len = max(max_len, int(math.floor(stop)) - int(math.floor(start)))
+
+        j+=1
 
   if(not testing):
     return X,y,max_word_len,max_len
@@ -88,7 +97,7 @@ def main():
 
     result = np.zeros((max_len, 45, 70, 3))
     result[:X_test[j].shape[0], :X_test[j].shape[1], :X_test[j].shape[2], :X_test[j].shape[3]] = X_test[j]
-    X_test[i] = result
+    X_test[j] = result
 
   #Fit and transform for train
   y_train = le.fit_transform(y_train)
