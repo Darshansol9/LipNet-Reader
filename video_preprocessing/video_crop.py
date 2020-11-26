@@ -4,9 +4,10 @@ import numpy as np
 #from google.colab.patches import cv2_imshow
 import dlib
 
-face_detector_path = '/content/drive/My Drive/shape_predictor_68_face_landmarks.dat'
 
-def readVideo(path):
+def read_video(path):
+
+  face_detector_path = r'/scratch/vvt223/data/shape_predictor_file/shape_predictor_68_face_landmarks.dat'
 
   '''
   processing video frames and return the processed frames to the function call
@@ -32,7 +33,7 @@ def readVideo(path):
   mouth_video_frames = get_frames_mouth(detector, predictor, frames)
   #showMouthFrames(mouth_video_frames)
   
-  return mouth_video_frames
+  return np.array(mouth_video_frames)
 
 
 def get_frames_mouth(detector, predictor, frames):
@@ -62,11 +63,15 @@ def get_frames_mouth(detector, predictor, frames):
       miny = min(ymouthpoints) 
       pad = 12
       crop_image = frame[miny-pad:maxy+pad,minx-pad:maxx+pad]
+      resized = cv2.resize(crop_image,(MAX_HEIGHT,MAX_WIDTH),interpolation = cv2.INTER_AREA)
+
+      '''
       shape = np.shape(crop_image)
       cropped_padded = np.zeros((MAX_WIDTH, MAX_HEIGHT,CHANNEL))
       cropped_padded[:shape[0],:shape[1]] = crop_image
-
-      mouth_frames.append(cropped_padded)
+      '''
+      
+      mouth_frames.append(resized)
   
   return mouth_frames
 
