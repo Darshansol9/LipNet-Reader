@@ -6,9 +6,9 @@ import dlib
 import math
 from read_alignment import read_align
 from video_crop import read_video
+import time
 
-
-def data_generator(BASE_PATH,X,y,testing=False):
+def data_generator(BASE_PATH,X,y,testing=False,vocab_set=set()):
 
   if(not testing):
     max_word_len = -float('inf')
@@ -32,12 +32,15 @@ def data_generator(BASE_PATH,X,y,testing=False):
         continue
 
       else:
+
+        start = time.time()
+
         #executing this block for all valid train speakers and unseeen_speakers
         dir_path = os.path.join(BASE_PATH,f's{j}/video')
 
         for files in os.listdir(dir_path):
           
-          #count +=1
+          count +=1
           fname,fext = os.path.splitext(files)
 
           alignments = read_align(os.path.join(os.path.join(BASE_PATH,f's{j}/align'),fname+'.align'))
@@ -46,24 +49,29 @@ def data_generator(BASE_PATH,X,y,testing=False):
           for start, stop, word in alignments:
               if word == 'sil' or word == 'sp':
                   continue
-                
-              if(testing):
-                
-                            
+                                  
               if start < stop and stop < len(mouth_video):
+                if(testing):
+                  if(word in vocab_set):
+                    X.append(mouth_video[int(math.floor(start)):int(math.floor(stop))])
+                    y.append(word)
+                  else:
+                    continue
+                else:
                   X.append(mouth_video[int(math.floor(start)):int(math.floor(stop))])
                   y.append(word)
-              else:
-                  continue
-
+                  vocab_set.add(word)
+                  
               if(not testing):
                 max_word_len = max(max_word_len, len(word))
                 max_len = max(max_len, int(math.floor(stop)) - int(math.floor(start)))
 
+        end = time.time()
+        print(f'Testing is {testing} and speaker {j} processed in time {end-start} secs')
         j+=1
 
   if(not testing):
-    return X,y,max_word_len,max_len
+    return X,y,max_word_len,max_len,vocab_set
 
   else:
     return X,y
@@ -76,14 +84,13 @@ def main():
 
   BASE_PATH = r'/scratch/vvt223/data/'
 
-  X_test,y_test = data_generator(os.path.join(BASE_PATH,'unseen_speakers'),[],[],True)
-  X_train,y_train,max_word_len,max_len = data_generator(os.path.join(BASE_PATH,'seen_speakers'),[],[],False)
+  X_train,y_train,max_word_len,max_len,vocab_set = data_generator(os.path.join(BASE_PATH,'seen_speakers'),[],[],False,set())
+  X_test,y_test = data_generator(os.path.join(BASE_PATH,'unseen_speakers'),[],[],True,vocab_set)
 
   for i in range(len(X_train)):
     result = np.zeros((max_len, 45, 70, 3))
     result[:X_train[i].shape[0], :X_train[i].shape[1], :X_train[i].shape[2], :X_train[i].shape[3]] = X_train[i]
     X_train[i] = result
-
 
   for j in range(len(X_test)):
 
@@ -105,9 +112,13 @@ def main():
   x_train = np.stack(X_train,axis=0)
 
   #Transforming the output of test to avoid bias in the model
+
+  print('Tranforming test vectors')
   y_test = le.transform(y_test)
   y_test = oh.transform(y_test.reshape(-1,1)).todense()
   x_test = np.stack(X_test,axis=0)
+
+  print('Tranformed test vectors')
 
   print('Saving processed data ...\n')
 
@@ -118,10 +129,16 @@ def main():
   np.savez_compressed(os.path.join(path_to_save,'X_test'), x=x_test)
   np.savez_compressed(os.path.join(path_to_save,'y_test'), y=y_test)
 
+  #Saving unique training corpus 
+
+  vocabulary = ''
+  vocabulary += "\n".join((str(v) for v in vocab_set))
+  with open(os.path.join(f'{path_to_save}','corpus_words.txt'),'w') as f:
+    f.write(vocabulary)
+  f.close()
+  
   print(f'Data saved at {path_to_save}')
 
 
-
 if __name__ == '__main__':
-
   main()
