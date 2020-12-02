@@ -71,8 +71,9 @@ class Encodings:
 
         path_to_save = '/content/data_processed/'
         
-        with open(os.path.join(f'{path_to_save}','image_encodings.pickle', 'wb') as f:
+        with open(os.path.join(f'{path_to_save}','image_encodings.pickle'),'wb') as f:
             pickle.dump(self.dict_encodings, f, protocol=pickle.HIGHEST_PROTOCOL)
+
 
         vocabulary = ''
         vocabulary += "\n".join((str(v) for v in self.vocab_set))
