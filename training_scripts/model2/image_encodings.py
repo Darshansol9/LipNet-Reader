@@ -26,6 +26,7 @@ class Encodings:
         self.num_samples = 1
         self.dict_encodings = {}
         self.vocab_set = set()
+        self.dict_text = {}
 
 
     def generateEncodings(self,dir_path,mode):
@@ -44,7 +45,7 @@ class Encodings:
           mouth_video = read_video(os.path.join(s_path,fname+'.mpg'))
         
           word_count = 0
-
+          sentence = ['start']
           for start, stop, word in alignments:
               if word == 'sil' or word == 'sp':
                 continue
@@ -60,6 +61,9 @@ class Encodings:
               else:
                 continue
 
+          sentence.append('end')
+          self.dict_text[f'{folder}_{fname}_{mode}'] = sentence[::]
+          
           if(count_samples == self.num_samples):
             break
 
@@ -74,6 +78,8 @@ class Encodings:
         with open(os.path.join(f'{path_to_save}','image_encodings.pickle'),'wb') as f:
             pickle.dump(self.dict_encodings, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+        with open(os.path.join(f'{path_to_save}','text_encodings.pickle'),'wb') as e:
+            pickle.dump(self.dict_text, e, protocol=pickle.HIGHEST_PROTOCOL)
 
         vocabulary = ''
         vocabulary += "\n".join((str(v) for v in self.vocab_set))
