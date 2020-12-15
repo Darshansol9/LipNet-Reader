@@ -159,14 +159,15 @@ class Test_Predictor:
         
         for k,v in incorrect_dict.items():
             temp_dict = dict(sorted(v.items(),key=lambda x: x[1],reverse=True))
-            print('Correct Word {k} incorrectly predicted with : ')
+            print('Correct Word {k} incorrectly predicted no of times : ')
             count = 0
             for k1,v1 in temp_dict.items():
-                print(f'{k1} number of times {v1}')
+                print(f'Word {k1} - {v1}')
                 count +=1
 
                 if(count == 5):
                     break
+            print('-'*40)
         
 
 
