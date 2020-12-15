@@ -29,6 +29,10 @@ class Test_Predictor:
 
     def __init__(self,model,max_length):
 
+        ''' 
+        Fetching all the encodings, text sentences and ignore files to remove corrupt videos files.
+        '''
+
         lookup_path = '/scratch/vvt223/model_processed'
         data_path = '/scratch/vvt223/data'
         self.test_ignore_names = convert_to_set(read_text(os.path.join(lookup_path,'ignore_videos_names_darshan.txt')),'\n')
@@ -65,6 +69,9 @@ class Test_Predictor:
 
     def predict(self,photo):
 
+        ''' 
+        Takes in the entire video in sequence and given a start token model predicts the next word
+        '''
   
         in_text = 'start'
         j = 0
@@ -96,6 +103,11 @@ class Test_Predictor:
 
     def calWER(self,actual_sentence,pred_sentence):
 
+        '''
+        given predicted sentence and actual sentence compute index-based incorrect words
+
+        '''
+
         pred_tok = pred_sentence.split(' ')
         correct = 0
 
@@ -103,7 +115,7 @@ class Test_Predictor:
         m = len(actual_sentence)
 
         for i in range(min(n,m)):
-            if(pred_tok[i] == actual_sentence[i]):
+            if(pred_tok[i] != actual_sentence[i]):
                 correct +=1
 
         return correct / max(n,m)
@@ -169,9 +181,9 @@ class CNN_LSTM:
         self.image_encodings = read_pickle(lookup_path,pickle_name)
         self.text_sentences = read_pickle(lookup_path,pickle_name1)
         print('-------------------------Done Reading pickle files---------------------------------------')
-        self.vocab = convert_to_set(read_text(lookup_path,'corpus_words_vishnu.txt'),'\n')
+        self.vocab = convert_to_set(read_text(lookup_path,'corpus_words.txt'),'\n')
         self.videofiles_ignore = convert_to_set(read_text(lookup_path,'ignore_videos_names.txt'),'\n')
-        self.val_file_name = convert_to_set(read_text(lookup_path,'X_Val_full.txt'),'\n')
+        self.val_file_name = convert_to_set(read_text(lookup_path,'X_val_full.txt'),'\n')
         self.train_file_name = convert_to_set(read_text(lookup_path,'X_train_full.txt'),'\n')
         print('Done Reading all data....')
     
@@ -184,12 +196,15 @@ class CNN_LSTM:
         self.max_length = to_max_length(self.text_sentences.values())
         self.vocab_size = len(self.vocab) + 1
 
+        #generating the embedding matrix
         self.embedding_matrix = generateEmbeddings(self.text_sentences.values(),
             self.vocab_size,
             self.wordtoidx,
             self.max_length,
             self.embedding_dim
             )
+
+        #making train val split with cleanup on ignore video files.
         self.train_encodings,self.seq_train,self.val_encodings,self.seq_val,self.dict_text_to_names = train_val_split(
             self.image_encodings,
             self.text_sentences,
@@ -211,20 +226,20 @@ class CNN_LSTM:
         self.dense_size = 128
         self.lstm_cell = 128
         self.dropout = 0.1
-        self.epochs = 30
+        self.epochs = 500
         self.num_videos_per_batch = 256
         self.steps_per_epoch = len(self.text_sentences)//self.num_videos_per_batch
-        self.validation_steps = 50
+        self.validation_steps = 100
         self.model = None
 
     def build(self):
 
         model1 = Sequential()
         model1.add(Conv1D(filters=32, kernel_size=9, activation='relu',input_shape = self.input_size))
-        model1.add(MaxPooling1D(pool_size=5))
+        model1.add(MaxPooling1D(pool_size=7))
         model1.add(Dropout(self.dropout))
         model1.add(Conv1D(filters=16, kernel_size=9, activation='relu'))
-        model1.add(MaxPooling1D(pool_size=5))
+        model1.add(MaxPooling1D(pool_size=7))
         model1.add(Dropout(self.dropout))
         model1.add(Flatten())
         model1.add(Dropout(self.dropout+0.2))
@@ -254,8 +269,9 @@ class CNN_LSTM:
         self.model.layers[11].trainable = False
 
         print('----------------Building the model-------------------------')
-        self.model.compile(loss='categorical_crossentropy', optimizer='adam',metrics=['accuracy'])
-        self.model.optimizer.lr = 0.0001
+        adam = tf.keras.optimizers.Adam(learning_rate=0.0002, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False,name='Adam')
+        self.model.compile(loss='categorical_crossentropy', optimizer=adam,metrics=['accuracy'])
+        
 
         print('--------------------Model Compiled-------------------------')
 
@@ -274,13 +290,17 @@ class CNN_LSTM:
 
             for key,tokenized_sentence in seq_.items():
                 n+=1
+                window_size = 2
                 fol_name,video_name,mode = key.split('_')[0],key.split('_')[1],key.split('_')[-1]
                 seq = [wordtoidx[word] for word in tokenized_sentence]
                 for i in range(1,len(seq)-1):
+                    
+                    #this is crux where we generate the sequence of window size 2
                     img = dict_encoding[f'{fol_name}_{video_name}_word{i-1}_{mode}']
-                    in_seq, out_seq = [seq[i-1]], seq[i]
+                    in_seq, out_seq = seq[i-window_size:i], seq[i]
                     in_seq = pad_sequences([in_seq], maxlen=max_length,value=0)[0]
                     out_seq = to_categorical([out_seq], num_classes=vocab_size+1)[0]
+                    
                     #taking curr image and previous word to predict next word
                     X1.append(img)
                     X2.append(in_seq)
