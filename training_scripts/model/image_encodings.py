@@ -23,20 +23,20 @@ class Encodings:
         self.max_len = -float('inf')
         self.ignore_video_files = set()
 
-    def pad_images_to_maxlength(self):
+    def pad_to_max_length(dict_encodings):
 
-        vgg_shape = self.dict_encodings[list(self.dict_encodings.keys())[0]].shape[1:]
-        for k,v in self.dict_encodings.items():
-            result = np.zeros((self.max_len,vgg_shape[0],vgg_shape[1],vgg_shape[2]))
-            result[:v.shape[0], :v.shape[1], :v.shape[2], :v.shape[3]] = v
-            self.dict_encodings[k] = result.flatten()
-
-        path_to_save = '/scratch/vvt223/data/processed_data'
+        vgg_shape = dict_encodings[list(dict_encodings.keys())[0]].shape[1:]
+        for k,v in dict_encodings.items():
+            result = np.zeros((33,vgg_shape[0],vgg_shape[1],vgg_shape[2]))
+            if(v.shape[0] >= 33):
+              result[:33, :v.shape[1], :v.shape[2], :v.shape[3]] = v[:33,:,:,:]
+            else:
+              result[:v.shape[0],:v.shape[1],:v.shape[2],:v.shape[3]] = v
+             
+            dict_encodings[k] = np.expand_dims(result.flatten(),axis=1)
         
-        with open(os.path.join(f'{path_to_save}','flatten_encodings.pickle'),'wb') as f:
-            pickle.dump(self.dict_encodings, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return dict_encodings
 
-        
     def generateEncodingSamples(self,data,mode):
 
 
